@@ -219,6 +219,7 @@ fun SearchScreen() {
             Text(
                 text = "Results for \"$searchQuery\"",
                 fontSize = 16.sp,
+
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

@@ -1,5 +1,6 @@
 package com.example.inband
 
+import android.R
 import android.os.Bundle
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -28,6 +31,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -56,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.inband.ui.theme.InBandTheme
@@ -84,6 +90,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+
 @Composable
 fun DropDownMenu(){
     var expanded by remember { mutableStateOf(false) }
@@ -99,16 +107,28 @@ fun DropDownMenu(){
 @Composable
 fun MainScreen() {
     var selectedRole by remember { mutableStateOf<String?>(null) }
+    var musicianLoginComplete by remember { mutableStateOf(false) }
+    var selectedSubscription by remember { mutableStateOf<String?>(null) }
     var selectedItem by remember { mutableStateOf(NavigationItem.HOME) }
     val bottomNavItems = listOf(NavigationItem.HOME, NavigationItem.SEARCH, NavigationItem.MESSAGES, NavigationItem.PROFILE)
 
+    val screen = when {
+        selectedRole == null -> "roles"
+        selectedRole == "Musician" && !musicianLoginComplete -> "musician-login"
+        selectedRole == "Musician" && selectedSubscription == null -> "subscription"
+        else -> "main"
+    }
+
     Crossfade(
-        targetState = selectedRole != null,
+        targetState = screen,
         animationSpec = tween(durationMillis = 350),
-        label = "role-to-main-transition"
-    ) { showMainScreen ->
-        if (showMainScreen) {
-            Scaffold(
+        label = "role-screen-transition"
+    ) { currentScreen ->
+        when (currentScreen) {
+            "roles" -> RoleSelectionScreen(onRoleSelected = { selectedRole = it })
+            "musician-login" -> MusicianLoginScreen(onContinue = { musicianLoginComplete = true })
+            "subscription" -> SubscriptionScreen(onSubscriptionSelected = { selectedSubscription = it })
+            else -> Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -176,59 +196,85 @@ fun MainScreen() {
             }
         }
     }
-        } else {
-            RoleSelectionScreen(onRoleSelected = { selectedRole = it })
-        }
+    }
     }
 }
 
 @Composable
-fun RoleSelectionScreen(onRoleSelected: (String) -> Unit) {
-    val roles = listOf("Band", "Musician", "Music school", "Gig venue")
+fun MusicianLoginScreen(onContinue: () -> Unit) {
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var country by remember { mutableStateOf("") }
+    var birthDate by remember { mutableStateOf("") }
+
+    val canContinue = listOf(firstName, lastName, email, phoneNumber, city, address, country, birthDate)
+        .all { it.isNotBlank() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF17171D))
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
-            text = "Welcome to InBand",
+            text = "Musician login",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFF4F4F6)
         )
-        Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "First, tell us who you are",
+            text = "Enter your details to continue",
             fontSize = 16.sp,
             color = Color(0xFFB8B8C2)
         )
-        Spacer(modifier = Modifier.height(28.dp))
-        roles.chunked(2).forEach { roleRow ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                roleRow.forEach { role ->
-                    OutlinedButton(
-                        onClick = { onRoleSelected(role) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(120.dp)
-                            .padding(6.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(2.dp, Color(0xFFFF2A4B)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = Color(0xFFFF2A4B)
-                        )
-                    ) {
-                        Text(role)
-                    }
-                }
-            }
+        ProfileTextField("First Name", firstName, { firstName = it })
+        ProfileTextField("Last Name", lastName, { lastName = it })
+        ProfileTextField("Email", email, { email = it }, KeyboardType.Email)
+        ProfileTextField("Phone number", phoneNumber, { phoneNumber = it }, KeyboardType.Phone)
+        ProfileTextField("City", city, { city = it })
+        ProfileTextField("Address", address, { address = it })
+        ProfileTextField("Country", country, { country = it })
+        ProfileTextField("Birth date (DD/MM/YYYY)", birthDate, { birthDate = it })
+
+        Button(
+            onClick = onContinue,
+            enabled = canContinue,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF2A4B),
+                contentColor = Color.White
+            )
+        ) {
+            Text("Continue")
         }
     }
+}
+
+@Composable
+private fun ProfileTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        shape = MaterialTheme.shapes.medium
+    )
 }
 
 @Composable
@@ -339,5 +385,95 @@ fun SettingsScreen() {
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground
         )
+    }
+}
+@Composable
+fun RoleSelectionScreen(onRoleSelected: (String) -> Unit) {
+    val roles = listOf("Band", "Musician", "Music school", "Gig venue")
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF17171D))
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Welcome to InBand",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFF4F4F6)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "First, tell us who you are",
+            fontSize = 16.sp,
+            color = Color(0xFFB8B8C2)
+        )
+        Spacer(modifier = Modifier.height(28.dp))
+        roles.chunked(2).forEach { roleRow ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                roleRow.forEach { role ->
+                    OutlinedButton(
+                        onClick = { onRoleSelected(role) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(120.dp)
+                            .padding(6.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(2.dp, Color(0xFFFF2A4B)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color(0xFFFF2A4B)
+                        )
+                    ) {
+                        Text(role)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
+    val subscription = listOf("Basic Plan", "Plus Plan", "Premium plan")
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color(0xFF17171D))
+        .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "Choose your subscription plan",
+                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp,
+                color = Color(0xFFF4F4F6)
+                )
+            Spacer(modifier = Modifier.height(28.dp))
+                subscription.chunked(2).forEach { subRow ->
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        subRow.forEach {
+                            subscription ->
+                            OutlinedButton(
+                                onClick = {onSubscriptionSelected(subscription)},
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(120.dp)
+                                    .padding(6.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(2.dp, Color(0xFFFF2A4B)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = Color(0xFFFF2A4B)
+                                )
+                            )
+                            {
+                                    Text(subscription)
+                            }
+                        }
+                    }
+                }
+
     }
 }

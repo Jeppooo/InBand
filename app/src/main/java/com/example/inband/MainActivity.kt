@@ -233,9 +233,17 @@ fun MusicianLoginScreen(onContinue: () -> Unit) {
             fontSize = 16.sp,
             color = Color(0xFFB8B8C2)
         )
+        var emailCorrect by remember { mutableStateOf(true) }
         ProfileTextField("First Name", firstName, { firstName = it })
         ProfileTextField("Last Name", lastName, { lastName = it })
-        ProfileTextField("Email", email, { email = it }, KeyboardType.Email)
+        ProfileTextField("Email", email, {
+            email = it
+            emailCorrect = checkAtEmail(it)
+
+        }, KeyboardType.Email)
+        if(!emailCorrect){
+            Text("Invalid email", color = Color.Red, style = MaterialTheme.typography.bodySmall)
+        }
         ProfileTextField("Phone number", phoneNumber, { phoneNumber = it }, KeyboardType.Phone)
         ProfileTextField("City", city, { city = it })
         ProfileTextField("Address", address, { address = it })
@@ -477,3 +485,12 @@ fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
 
     }
 }
+fun checkAtEmail(email : String): Boolean{
+    if(email.contains(regex = "^((?!\\.)[\\w\\-_.]*[^.])(@\\w+)(\\.\\w+(\\.\\w+)?[^.\\W])$".toRegex())){
+        return true
+        }
+    else{
+        return false
+    }
+}
+

@@ -1,6 +1,5 @@
 package com.example.inband
 
-import android.R
 import android.os.Bundle
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -92,16 +91,6 @@ class MainActivity : ComponentActivity() {
 }
 
 
-@Composable
-fun DropDownMenu(){
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = Modifier.padding(16.dp)
-    ) {
-        IconButton(onClick = {expanded = !expanded}) {
-
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -444,9 +433,15 @@ fun RoleSelectionScreen(onRoleSelected: (String) -> Unit) {
     }
 }
 
+data class SubscriptionPlan(val name: String, val price: String)
+
 @Composable
 fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
-    val subscription = listOf("Basic Plan", "Plus Plan", "Premium plan")
+    val subscriptions = listOf(
+        SubscriptionPlan("Basic Plan", "5,99€/mo"),
+        SubscriptionPlan("Plus Plan", "12,99€/mo"),
+        SubscriptionPlan("Premium Plan", "15,99€/mo")
+    )
     Column(modifier = Modifier
         .fillMaxSize()
         .background(Color(0xFF17171D))
@@ -459,12 +454,11 @@ fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
                 color = Color(0xFFF4F4F6)
                 )
             Spacer(modifier = Modifier.height(28.dp))
-                subscription.chunked(2).forEach { subRow ->
+                subscriptions.chunked(2).forEach { subRow ->
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        subRow.forEach {
-                            subscription ->
+                        subRow.forEach { plan ->
                             OutlinedButton(
-                                onClick = {onSubscriptionSelected(subscription)},
+                                onClick = { onSubscriptionSelected(plan.name) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(120.dp)
@@ -477,7 +471,22 @@ fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
                                 )
                             )
                             {
-                                    Text(subscription)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = plan.name,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = plan.price,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFFB8B8C2)
+                                    )
+                                }
                             }
                         }
                     }
@@ -486,11 +495,6 @@ fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
     }
 }
 fun checkAtEmail(email : String): Boolean{
-    if(email.contains(regex = "^((?!\\.)[\\w\\-_.]*[^.])(@\\w+)(\\.\\w+(\\.\\w+)?[^.\\W])$".toRegex())){
-        return true
-        }
-    else{
-        return false
-    }
+    return email.contains(regex = "^((?!\\.)[\\w\\-_.]*[^.])(@\\w+)(\\.\\w+(\\.\\w+)?[^.\\W])$".toRegex())
 }
 

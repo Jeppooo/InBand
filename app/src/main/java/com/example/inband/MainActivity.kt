@@ -64,6 +64,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -102,6 +103,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     var selectedRole by remember { mutableStateOf<String?>(null) }
     var musicianLoginComplete by remember { mutableStateOf(false) }
+    var musicianPasswordComplete by remember { mutableStateOf(false) }
     var selectedSubscription by remember { mutableStateOf<String?>(null) }
     var selectedItem by remember { mutableStateOf(NavigationItem.HOME) }
     val bottomNavItems = listOf(NavigationItem.HOME, NavigationItem.SEARCH, NavigationItem.MESSAGES, NavigationItem.PROFILE)
@@ -109,6 +111,7 @@ fun MainScreen() {
     val screen = when {
         selectedRole == null -> "roles"
         selectedRole == "Musician" && !musicianLoginComplete -> "musician-login"
+        selectedRole == "Musician" && !musicianPasswordComplete -> "musician-password"
         selectedRole == "Musician" && selectedSubscription == null -> "subscription"
         else -> "main"
     }
@@ -121,6 +124,7 @@ fun MainScreen() {
         when (currentScreen) {
             "roles" -> RoleSelectionScreen(onRoleSelected = { selectedRole = it })
             "musician-login" -> MusicianLoginScreen(onContinue = { musicianLoginComplete = true })
+            "musician-password" -> MusicianPasswordScreen(onContinue = { musicianPasswordComplete = true })
             "subscription" -> SubscriptionScreen(onSubscriptionSelected = { selectedSubscription = it })
             else -> Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -274,6 +278,102 @@ fun MusicianLoginScreen(onContinue: () -> Unit) {
         ) {
             Text("Continue")
         }
+    }
+}
+
+@Composable
+fun MusicianPasswordScreen(onContinue: () -> Unit) {
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    val hasMinMaxLen = password.length in 6..24
+    val hasDigit = password.any { it.isDigit() }
+    val hasSpecialSymbol = password.any { !it.isLetterOrDigit() }
+    val isValid = hasMinMaxLen && hasDigit && hasSpecialSymbol
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF17171D))
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Create Password",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFF4F4F6)
+        )
+        Text(
+            text = "Set up a password for your musician account",
+            fontSize = 16.sp,
+            color = Color(0xFFB8B8C2)
+        )
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = MaterialTheme.shapes.medium
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            RequirementItem(
+                text = "Between 6 and 24 characters",
+                satisfied = hasMinMaxLen
+            )
+            RequirementItem(
+                text = "At least one number (0-9)",
+                satisfied = hasDigit
+            )
+            RequirementItem(
+                text = "At least one special symbol (!@#$%^&*...)",
+                satisfied = hasSpecialSymbol
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = onContinue,
+            enabled = isValid,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF2A4B),
+                contentColor = Color.White
+            )
+        ) {
+            Text("Continue")
+        }
+    }
+}
+
+@Composable
+private fun RequirementItem(text: String, satisfied: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = if (satisfied) "✓" else "•",
+            color = if (satisfied) Color(0xFF4CAF50) else Color(0xFFB8B8C2),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
+        Text(
+            text = text,
+            color = if (satisfied) Color(0xFF4CAF50) else Color(0xFFB8B8C2),
+            fontSize = 14.sp
+        )
     }
 }
 
@@ -562,5 +662,10 @@ fun formatBirthDate(input: String): String {
         digits.length >= 3 -> "${digits.substring(0, 2)}/${digits.substring(2)}"
         else -> digits
     }
+}
+fun checkPassword(password: String): Boolean {
+    return password.length in 6..24 &&
+            password.any { it.isDigit() } &&
+            password.any { !it.isLetterOrDigit() }
 }
 

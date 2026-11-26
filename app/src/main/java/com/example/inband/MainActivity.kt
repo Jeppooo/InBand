@@ -237,7 +237,15 @@ fun MusicianLoginScreen(onContinue: () -> Unit) {
         ProfileTextField("City", city, { city = it })
         ProfileTextField("Address", address, { address = it })
         ProfileTextField("Country", country, { country = it })
-        ProfileTextField("Birth date (DD/MM/YYYY)", birthDate, { birthDate = it })
+        var birthDateCorrect by remember { mutableStateOf(true) }
+        ProfileTextField("Birth date (DD/MM/YYYY)", birthDate, {
+            val formatted = formatBirthDate(it)
+            birthDate = formatted
+            birthDateCorrect = formatted.isEmpty() || formatted.length < 10 || checkDateBirth(formatted)
+        }, KeyboardType.Number)
+        if(!birthDateCorrect){
+            Text("Invalid birth date", color = Color.Red, style = MaterialTheme.typography.bodySmall)
+        }
 
         Button(
             onClick = onContinue,
@@ -496,5 +504,16 @@ fun SubscriptionScreen(onSubscriptionSelected: (String) -> Unit){
 }
 fun checkAtEmail(email : String): Boolean{
     return email.contains(regex = "^((?!\\.)[\\w\\-_.]*[^.])(@\\w+)(\\.\\w+(\\.\\w+)?[^.\\W])$".toRegex())
+}
+fun checkDateBirth(birthDate : String): Boolean{
+    return birthDate.contains(regex = "^(?:0[1-9]|[12]\\d|3[01])([/.-])(?:0[1-9]|1[012])\\1(?:19|20)\\d\\d$".toRegex())
+}
+fun formatBirthDate(input: String): String {
+    val digits = input.filter { it.isDigit() }.take(8)
+    return when {
+        digits.length >= 5 -> "${digits.substring(0, 2)}/${digits.substring(2, 4)}/${digits.substring(4)}"
+        digits.length >= 3 -> "${digits.substring(0, 2)}/${digits.substring(2)}"
+        else -> digits
+    }
 }
 

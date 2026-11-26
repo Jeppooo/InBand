@@ -59,8 +59,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.inband.ui.theme.InBandTheme
@@ -238,11 +242,18 @@ fun MusicianLoginScreen(onContinue: () -> Unit) {
         ProfileTextField("Address", address, { address = it })
         ProfileTextField("Country", country, { country = it })
         var birthDateCorrect by remember { mutableStateOf(true) }
-        ProfileTextField("Birth date (DD/MM/YYYY)", birthDate, {
-            val formatted = formatBirthDate(it)
-            birthDate = formatted
-            birthDateCorrect = formatted.isEmpty() || formatted.length < 10 || checkDateBirth(formatted)
-        }, KeyboardType.Number)
+        ProfileTextField(
+            label = "Birth date (DD/MM/YYYY)",
+            value = birthDate,
+            onValueChange = { input ->
+                val digits = input.filter { it.isDigit() }.take(8)
+                birthDate = digits
+                val formatted = formatBirthDate(digits)
+                birthDateCorrect = digits.isEmpty() || digits.length < 8 || checkDateBirth(formatted)
+            },
+            keyboardType = KeyboardType.Number,
+            visualTransformation = DateVisualTransformation()
+        )
         if(!birthDateCorrect){
             Text("Invalid birth date", color = Color.Red, style = MaterialTheme.typography.bodySmall)
         }
@@ -269,7 +280,8 @@ private fun ProfileTextField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
     OutlinedTextField(
         value = value,
@@ -278,8 +290,40 @@ private fun ProfileTextField(
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        visualTransformation = visualTransformation,
         shape = MaterialTheme.shapes.medium
     )
+}
+
+class DateVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = if (text.text.length >= 8) text.text.substring(0, 8) else text.text
+        var out = ""
+        for (i in trimmed.indices) {
+            out += trimmed[i]
+            if (i == 1 || i == 3) {
+                out += "/"
+            }
+        }
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 1) return offset
+                if (offset <= 3) return offset + 1
+                if (offset <= 8) return offset + 2
+                return out.length
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 2) return offset
+                if (offset <= 5) return offset - 1
+                if (offset <= 10) return offset - 2
+                return trimmed.length
+            }
+        }
+
+        return TransformedText(AnnotatedString(out), offsetMapping)
+    }
 }
 
 @Composable
